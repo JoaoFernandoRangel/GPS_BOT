@@ -8,10 +8,10 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/include",
-                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/src",
-                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/.pio/libdeps/due/PID",
-                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/.pio/libdeps/due/TinyGPSPlus/src",
+                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/include",
+                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/src",
+                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/.pio/libdeps/due/PID",
+                "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/.pio/libdeps/due/TinyGPSPlus/src",
                 "C:/.platformio/packages/framework-arduino-sam/cores/arduino",
                 "C:/.platformio/packages/framework-arduino-sam/system/libsam",
                 "C:/.platformio/packages/framework-arduino-sam/system/CMSIS/CMSIS/Include",
@@ -25,10 +25,10 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/include",
-                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/src",
-                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/.pio/libdeps/due/PID",
-                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/.pio/libdeps/due/TinyGPSPlus/src",
+                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/include",
+                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/src",
+                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/.pio/libdeps/due/PID",
+                    "C:/Users/João Fernando Rangel/Desktop/IFES/Período 7/Sistemas Embarcados/GPR__BOT/GPS_BOT/.pio/libdeps/due/TinyGPSPlus/src",
                     "C:/.platformio/packages/framework-arduino-sam/cores/arduino",
                     "C:/.platformio/packages/framework-arduino-sam/system/libsam",
                     "C:/.platformio/packages/framework-arduino-sam/system/CMSIS/CMSIS/Include",

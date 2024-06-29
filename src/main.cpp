@@ -55,28 +55,6 @@ bool hasInitialPoint = false;
 void loop()
 {
 
-  double *posicao_inicial = le_gps(true);
-  ponto0[0] = posicao_inicial[0];
-  ponto0[1] = posicao_inicial[1];
-
-  delay(1000); // Espera 1 segundo antes de tentar novamente
-  anda_para_frente(5000);
-
-  // Pegue o segundo ponto
-  double *posicao_final = le_gps(true);
-  ponto1[0] = posicao_final[0];
-  ponto1[1] = posicao_final[1];
-
-  // Exibir os pontos para verificação
-  Serial_Debug.print("Ponto Inicial: Latitude= ");
-  Serial_Debug.print(ponto0[0], 6);
-  Serial_Debug.print(" Longitude= ");
-  Serial_Debug.println(ponto0[1], 6);
-
-  Serial_Debug.print("Ponto Final: Latitude= ");
-  Serial_Debug.print(ponto1[0], 6);
-  Serial_Debug.print(" Longitude= ");
-  Serial_Debug.println(ponto1[1], 6);
 }
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
