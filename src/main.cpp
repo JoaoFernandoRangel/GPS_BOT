@@ -46,6 +46,8 @@ void setup()
   pinMode(in2, OUTPUT);
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
+  delay(2000);
+  Serial_Debug.println("Finish Setup");
 }
 unsigned long agora, zero = 0;
 
@@ -54,7 +56,7 @@ double ponto1[] = {0, 0};
 bool hasInitialPoint = false;
 void loop()
 {
-
+  
 }
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
@@ -152,8 +154,8 @@ void gira_para_esquerda(int tempo)
   analogWrite(in1, 0);
   analogWrite(in2, 255);
 
-  analogWrite(in4, 255);
-  analogWrite(in3, 0);
+  analogWrite(in4, 0);
+  analogWrite(in3, 120);
   delay(tempo);
   analogWrite(in1, 0);
   analogWrite(in3, 0);
@@ -163,8 +165,9 @@ void gira_para_esquerda(int tempo)
 
 void gira_para_direita(int tempo)
 {
-  analogWrite(in1, 255);
-  analogWrite(in2, 0);
+  analogWrite(in1, 0);
+  analogWrite(in2, 120);
+
   analogWrite(in4, 0);
   analogWrite(in3, 255);
   delay(tempo);
