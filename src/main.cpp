@@ -174,8 +174,8 @@ void gira_para_esquerda(int tempo)
   analogWrite(in1, 0);
   analogWrite(in2, 255);
 
-  analogWrite(in4, 255);
-  analogWrite(in3, 0);
+  analogWrite(in4, 0);
+  analogWrite(in3, 120);
   delay(tempo);
   analogWrite(in1, 0);
   analogWrite(in3, 0);
@@ -185,8 +185,9 @@ void gira_para_esquerda(int tempo)
 
 void gira_para_direita(int tempo)
 {
-  analogWrite(in1, 255);
-  analogWrite(in2, 0);
+  analogWrite(in1, 0);
+  analogWrite(in2, 120);
+
   analogWrite(in4, 0);
   analogWrite(in3, 255);
   delay(tempo);
