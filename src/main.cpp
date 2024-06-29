@@ -12,6 +12,7 @@
 TinyGPSPlus gps;
 
 //////////////DECLARAÇÕES DE FUNÇÕES////////////////////////
+void pega_pontos();
 double calc_dist(double lat, double longt, double lat_goal, double long_goal);
 void le_gps(bool escreve_na_port, double ponto_x, double ponto_y);
 void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_vec, double y_vec);
@@ -20,48 +21,38 @@ double modulo(double x, double y);
 double to_rad(double angulo_grau);
 void anda_para_frente(int tempo);
 void anda_para_tras(int tempo);
-/*Girar por 5 sergundos faz o robo virar 180 graus*/
-void gira_para_direita(int tempo);
 void gira_para_esquerda(int tempo);
+void gira_para_direita(int tempo);
 void ajusta_para(bool direita);
+void stop();
 
-void ajusta_para(bool direita)
-{
-  if (direita)
-  {
-    gira_para_direita(1000);
-    delay(200);
-    anda_para_frente(5000);
-  }
-  else
-  {
-    gira_para_esquerda(1000);
-    delay(200);
-    anda_para_frente(5000);
-  }
-  Serial_Debug.println("Posição ajustada");
-}
-void pega_pontos();
 //////////////Variáveis Declaradas////////////////////////
 
-// In2 1 e In1 0 lado direito para frente
+// Variáveis do tipo uint32_t
 uint32_t in1 = 9;
 uint32_t in2 = 8;
-
-// In3 0 e In4 1 lado esquerdo para frente
 uint32_t in3 = 6;
 uint32_t in4 = 7;
 
+// Variáveis do tipo double
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
 double rTerra = 6371;                           // Raio da terra em km
-bool orientado = false;
-unsigned long agora, zero = 0;
-double angulo0, angulo1 = 0;
+double angulo0 = 0;
+double angulo1 = 0;
 double ponto0[] = {0, 0};
 double ponto1[] = {0, 0};
-double vec0[] = {0,0};
-double vec_goal[] = {0,0};
-bool primeiro = true, hasInitialPoint = false;
+double vec0[] = {0, 0};
+double vec_goal[] = {0, 0};
+
+// Variáveis do tipo bool
+bool orientado = false;
+bool primeiro = true;
+bool hasInitialPoint = false;
+bool cond = true;
+
+// Variáveis do tipo unsigned long
+unsigned long agora = 0;
+unsigned long zero = 0;
 
 void setup()
 {
@@ -73,24 +64,42 @@ void setup()
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
   Serial_Debug.println("Finish Setup");
-  pega_pontos();
-  faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]); // vetor de movimento
-  faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
-  dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);
 }
 
 void loop()
 {
-  pega_pontos();
-  faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]); // vetor de movimento
-  faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
-    
-
+  if (cond)
+  {
+    agora = millis();
+    if (agora - zero >= 1000) // Executa a rotina a cada segundo.
+    {
+      pega_pontos();
+      faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
+      faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
+      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);                             // retorna o angulo0 entre os dois vetores
+      if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2)                    // verifica se estamos a menos de 2 metros do alvo
+      {
+        stop();
+        cond = false;
+      }
+      if (angulo0 > angulo1)
+      {
+        ajusta_para(false); //Ajusta movimentação para direita 
+      }
+      else
+      {
+        ajusta_para(true); //Ajusta movimentação para direita
+      }
+      angulo1 = angulo0;
+      zero = agora;
+    }
+  }
 }
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
 /*Função para pegar dois pontos*/
-void pega_pontos(){
+void pega_pontos()
+{
   le_gps(true, ponto0[0], ponto0[1]);
   anda_para_frente(2500);
   delay(200);
@@ -134,7 +143,6 @@ void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_
 double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo)
 {
   angulo = asin((x_vetor_0 * x_vetor_1 + y_vetor_0 * y_vetor_1) / (modulo(x_vetor_0, y_vetor_0) * modulo(x_vetor_1, y_vetor_1)));
-  
 }
 /*Faz módulo de vetor*/
 double modulo(double x, double y)
@@ -147,9 +155,6 @@ double to_rad(double angulo_grau)
 {
   return (angulo_grau * PI / 180);
 }
-
-
-
 
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
 void anda_para_frente(int tempo)
@@ -206,4 +211,28 @@ void gira_para_direita(int tempo)
   analogWrite(in4, 0);
 }
 
+void ajusta_para(bool direita)
+{
+  if (direita)
+  {
+    gira_para_direita(1000);
+    delay(200);
+    anda_para_frente(5000);
+  }
+  else
+  {
+    gira_para_esquerda(1000);
+    delay(200);
+    anda_para_frente(5000);
+  }
+  Serial_Debug.println("Posição ajustada");
+}
+
+void stop()
+{
+  analogWrite(in1, 0);
+  analogWrite(in4, 0);
+  analogWrite(in2, 0);
+  analogWrite(in3, 0);
+}
 ////////////////////ROTINA DE ORIENTAÇÃO PARA NORTE///////////////////
