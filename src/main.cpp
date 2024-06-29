@@ -48,7 +48,7 @@ double vec_goal[] = {0, 0};
 bool orientado = false;
 bool primeiro = true;
 bool hasInitialPoint = false;
-bool cond = true;
+bool cond = true; // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
 
 // Variáveis do tipo unsigned long
 unsigned long agora = 0;
@@ -80,15 +80,15 @@ void loop()
       if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2)                    // verifica se estamos a menos de 2 metros do alvo
       {
         stop();
-        cond = false;
+        cond = false; // Para o loop uma vez que a distância é atingida.
       }
       if (angulo0 > angulo1)
       {
-        ajusta_para(false); //Ajusta movimentação para direita 
+        ajusta_para(false); // Ajusta movimentação para direita
       }
       else
       {
-        ajusta_para(true); //Ajusta movimentação para direita
+        ajusta_para(true); // Ajusta movimentação para direita
       }
       angulo1 = angulo0;
       zero = agora;
