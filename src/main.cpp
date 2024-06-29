@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <TinyGPSPlus.h>
-#include <PID_v1.h>
+
 #include "math.h"
 
 #define Serial_Debug Serial
@@ -13,16 +13,35 @@ TinyGPSPlus gps;
 
 //////////////DECLARAÇÕES DE FUNÇÕES////////////////////////
 double calc_dist(double lat, double longt, double lat_goal, double long_goal);
-double *le_gps(bool escreve_na_port);
-void faz_vetores(double x_zero, double y_zero, double x_1, double y_1);
-double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1);
+void le_gps(bool escreve_na_port, double ponto_x, double ponto_y);
+void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_vec, double y_vec);
+double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo);
 double modulo(double x, double y);
 double to_rad(double angulo_grau);
 void anda_para_frente(int tempo);
 void anda_para_tras(int tempo);
+/*Girar por 5 sergundos faz o robo virar 180 graus*/
 void gira_para_direita(int tempo);
 void gira_para_esquerda(int tempo);
+void ajusta_para(bool direita);
 
+void ajusta_para(bool direita)
+{
+  if (direita)
+  {
+    gira_para_direita(1000);
+    delay(200);
+    anda_para_frente(5000);
+  }
+  else
+  {
+    gira_para_esquerda(1000);
+    delay(200);
+    anda_para_frente(5000);
+  }
+  Serial_Debug.println("Posição ajustada");
+}
+void pega_pontos();
 //////////////Variáveis Declaradas////////////////////////
 
 // In2 1 e In1 0 lado direito para frente
@@ -36,6 +55,13 @@ uint32_t in4 = 7;
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
 double rTerra = 6371;                           // Raio da terra em km
 bool orientado = false;
+unsigned long agora, zero = 0;
+double angulo0, angulo1 = 0;
+double ponto0[] = {0, 0};
+double ponto1[] = {0, 0};
+double vec0[] = {0,0};
+double vec_goal[] = {0,0};
+bool primeiro = true, hasInitialPoint = false;
 
 void setup()
 {
@@ -46,40 +72,30 @@ void setup()
   pinMode(in2, OUTPUT);
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
+  Serial_Debug.println("Finish Setup");
+  pega_pontos();
+  faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]); // vetor de movimento
+  faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
+  dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);
 }
-unsigned long agora, zero = 0;
 
-double ponto0[] = {0, 0};
-double ponto1[] = {0, 0};
-bool hasInitialPoint = false;
 void loop()
 {
+  pega_pontos();
+  faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]); // vetor de movimento
+  faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
+    
 
-  double *posicao_inicial = le_gps(true);
-  ponto0[0] = posicao_inicial[0];
-  ponto0[1] = posicao_inicial[1];
-
-  delay(1000); // Espera 1 segundo antes de tentar novamente
-  anda_para_frente(5000);
-
-  // Pegue o segundo ponto
-  double *posicao_final = le_gps(true);
-  ponto1[0] = posicao_final[0];
-  ponto1[1] = posicao_final[1];
-
-  // Exibir os pontos para verificação
-  Serial_Debug.print("Ponto Inicial: Latitude= ");
-  Serial_Debug.print(ponto0[0], 6);
-  Serial_Debug.print(" Longitude= ");
-  Serial_Debug.println(ponto0[1], 6);
-
-  Serial_Debug.print("Ponto Final: Latitude= ");
-  Serial_Debug.print(ponto1[0], 6);
-  Serial_Debug.print(" Longitude= ");
-  Serial_Debug.println(ponto1[1], 6);
 }
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
+/*Função para pegar dois pontos*/
+void pega_pontos(){
+  le_gps(true, ponto0[0], ponto0[1]);
+  anda_para_frente(2500);
+  delay(200);
+  le_gps(true, ponto1[0], ponto1[1]);
+}
 /*Calcula a distância entre o ponto atual e a o ponto desejado. Resultado em metros*/
 double calc_dist(double lat, double longt, double lat_goal, double long_goal)
 {
@@ -91,44 +107,34 @@ double calc_dist(double lat, double longt, double lat_goal, double long_goal)
   return Distancia * 1000; // Valor sai em m.
 }
 /*Função de leitura do módulo GPS. Quando o valor é positivo o valor é impresso na comunicação Serial no pc.*/
-double *le_gps(bool escreve_na_port)
+void le_gps(bool escreve_na_port, double ponto_x, double ponto_y)
 {
-  static double ponto_local[2]; // Static to keep the values outside the scope of the function
-
   if (GPS_Serial.available() > 0)
   {
     gps.encode(GPS_Serial.read());
-    if (gps.location.isUpdated())
-    {
-      ponto_local[0] = gps.location.lat();
-      ponto_local[1] = gps.location.lng();
-
-      if (escreve_na_port)
-      {
-        Serial_Debug.print("Latitude= ");
-        Serial_Debug.print(gps.location.lat(), 6);
-        Serial_Debug.print(" Longitude= ");
-        Serial_Debug.println(gps.location.lng(), 6);
-      }
-    }
+    ponto_x = gps.location.lat();
+    ponto_y = gps.location.lng();
+    Serial_Debug.print("Latitude= ");
+    Serial_Debug.print(gps.location.lat(), 8);
+    Serial_Debug.print(" Longitude= ");
+    Serial_Debug.println(gps.location.lng(), 8);
   }
   else
   {
     Serial_Debug.println("Falha na leitura do GPS!!");
   }
-  return ponto_local;
 }
-
-void faz_vetores(double x_zero, double y_zero, double x_1, double y_1)
+/*Calcula um vetor entre dois pontos e retorna o valor para as ultimas variáveis passadas para a função*/
+void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_vec, double y_vec)
 {
-  double x_vec = x_1 - x_zero;
-  double y_vec = y_1 - y_zero;
+  x_vec = x_1 - x_zero;
+  y_vec = y_1 - y_zero;
 }
 /*Retorna angulo entre dois vetores em radianos*/
-double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1)
+double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo)
 {
-  double angulo = asin((x_vetor_0 * x_vetor_1 + y_vetor_0 * y_vetor_1) / (modulo(x_vetor_0, y_vetor_0) * modulo(x_vetor_1, y_vetor_1)));
-  return angulo;
+  angulo = asin((x_vetor_0 * x_vetor_1 + y_vetor_0 * y_vetor_1) / (modulo(x_vetor_0, y_vetor_0) * modulo(x_vetor_1, y_vetor_1)));
+  
 }
 /*Faz módulo de vetor*/
 double modulo(double x, double y)
@@ -136,13 +142,16 @@ double modulo(double x, double y)
   double modulo = sqrt(pow(x, 2) + pow(y, 2));
   return modulo;
 }
-
 /*Conversor de grau para Radiano*/
 double to_rad(double angulo_grau)
 {
   return (angulo_grau * PI / 180);
 }
 
+
+
+
+//////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
 void anda_para_frente(int tempo)
 {
   analogWrite(in1, 0);
