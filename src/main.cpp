@@ -60,34 +60,14 @@ void setup()
   // Configurações iniciais...
   Serial_Debug.begin(9600); // Inicia Serial com computador
   GPS_Serial.begin(9600);   // Inicia Serial com GPS
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
-  pinMode(in3, OUTPUT);
-  pinMode(in4, OUTPUT);
+  SerialBT.begin(9600);
+
   Serial_Debug.println("Finish Setup");
 }
 
 void loop()
 {
-  if (cond)
-  {
-    agora = millis();
-    if (agora - zero >= 1000) // Executa a rotina a cada segundo.
-    {
-      pega_pontos();
-      if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2) // verifica se estamos a menos de 2 metros do alvo
-      {
-        stop();
-        cond = false; // Para o loop uma vez que a distância é atingida.
-      } // Anda em linha reta por 2,5 segundos
-      faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
-      faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
-      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);                             // retorna o angulo0 entre os dois vetores
-      ajusta_angulo(angulo0, angulo1);                                                           // Rotaciona o carrinho de acordo com o angulo adquirido
-      angulo1 = angulo0;
-      zero = agora;
-    }
-  }
+  
 }
 
 void ajusta_angulo(double angulo0, double angulo1)
