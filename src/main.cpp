@@ -1,6 +1,11 @@
 #include <Arduino.h>
 #include <TinyGPSPlus.h>
 #include "math.h"
+#include "string.h"
+#include "stdlib.h"
+
+
+
 
 #define Serial_Debug Serial
 #define GPS_Serial Serial1
@@ -27,7 +32,7 @@ void ajusta_para(bool direita, float tempo);
 void stop();
 void ajusta_angulo(double angulo0, double angulo1);
 void escreve_Serial(bool debug, bool debug_BT, String mensagem);
-void envia_BT(String mensagem);
+void envia_BT(String mensagem0, String mensagem1);
 //////////////Variáveis Declaradas////////////////////////
 
 // Variáveis do tipo uint32_t
@@ -38,6 +43,7 @@ uint32_t in4 = 7;
 
 // Variáveis do tipo double
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
+String ponto_goal_lat = "-20.310872", ponto_goal_lng = "-40.319732"; // Strings de local
 double rTerra = 6371;                           // Raio da terra em km
 double angulo0 = 0;
 double angulo1 = 0;
@@ -63,11 +69,11 @@ void setup()
   Serial_Debug.begin(9600); // Inicia Serial com computador
   GPS_Serial.begin(9600);   // Inicia Serial com GPS
   SerialBT.begin(9600);     // Inicia Serial com módulo Bluetooth
-
+  
   Serial_Debug.println("Finish Setup");
 }
 
-String mensagem = ";", mensagem_envio = "";
+String mensagem = ";",  mensagem_envio1 , mensagem_envio2;
 bool mensagem_completa = false;
 unsigned long zero2 = 0;
 void loop()
@@ -95,20 +101,23 @@ void loop()
   {
     if (mensagem_completa)
     {
-      mensagem_envio = "AAA";
+      mensagem_envio1 = ponto_goal_lat;
+      mensagem_envio2 = ponto_goal_lng;
       mensagem_completa = !mensagem_completa;
     }
     else
     {
-      mensagem_envio = "BBB";
+      mensagem_envio1 = ponto_goal_lng;
+      mensagem_envio2 = ponto_goal_lat;
       mensagem_completa = !mensagem_completa;
     }
-    envia_BT(mensagem_envio);
+    /* envia_BT("Lat: " + String(ponto_goal[0]) +" _ "+" Lng: "+String(ponto_goal[1])); */
+    envia_BT(mensagem_envio1,mensagem_envio2);
     Serial_Debug.println("Envio_BT");
     zero2 = agora;
   }
 }
-/* } */
+
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
 /*Função para pegar dois pontos*/
@@ -199,9 +208,16 @@ void escreve_Serial(bool debug, bool debug_BT, String mensagem)
   }
 }
 
-void envia_BT(String mensagem)
+void envia_BT(String mensagem0, String mensagem1)
 {
-  SerialBT.println(mensagem);
+  SerialBT.print(mensagem0);
+  SerialBT.print("_");
+  SerialBT.println(mensagem1);
+  
+  Serial_Debug.print(mensagem0);
+  Serial_Debug.print("_");
+  Serial_Debug.println(mensagem1);
+
 }
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
 void ajusta_angulo(double angulo0, double angulo1)
