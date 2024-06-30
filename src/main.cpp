@@ -93,6 +93,11 @@ void loop()
   if (agora - zero2 >= 1000)
   {
     /* envia_BT("Lat: " + String(ponto_goal[0]) +" _ "+" Lng: "+String(ponto_goal[1])); */
+    /*
+    if (mensagem passa pelo filtro){
+    mensagem_comando= mensagem
+    }
+    */
     mensagem_comando = mensagem;
     escreve_Serial(true, false, mensagem_comando);
     //Serial_Debug.println("Envio_BT");
