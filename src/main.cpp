@@ -43,7 +43,7 @@ uint32_t in4 = 7;
 
 // Variáveis do tipo double
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
-String ponto_goal_lat = "-20.310872", ponto_goal_lng = "-40.319732"; // Strings de local
+String ponto_goal_lat = "-20.310872556", ponto_goal_lng = "-40.319732665"; // Strings de local
 double rTerra = 6371;                           // Raio da terra em km
 double angulo0 = 0;
 double angulo1 = 0;
@@ -73,7 +73,7 @@ void setup()
   Serial_Debug.println("Finish Setup");
 }
 
-String mensagem = ";",  mensagem_envio1 , mensagem_envio2;
+String mensagem = ";",  mensagem_envio1 , mensagem_envio2, mensagem_comando;
 bool mensagem_completa = false;
 unsigned long zero2 = 0;
 void loop()
@@ -90,31 +90,14 @@ void loop()
     mensagem += SerialBT.readStringUntil('/');
     delay(5); // Introduce a short delay inside the loop
   }
-
-  /*     if ((agora - zero >= 1000))
-      {
-        escreve_Serial(true, true, mensagem);
-        mensagem = ""; // Clear the message after handling
-        zero = agora;
-      } */
-  if (agora - zero2 >= 2000)
+  if (agora - zero2 >= 1000)
   {
-    if (mensagem_completa)
-    {
-      mensagem_envio1 = ponto_goal_lat;
-      mensagem_envio2 = ponto_goal_lng;
-      mensagem_completa = !mensagem_completa;
-    }
-    else
-    {
-      mensagem_envio1 = ponto_goal_lng;
-      mensagem_envio2 = ponto_goal_lat;
-      mensagem_completa = !mensagem_completa;
-    }
     /* envia_BT("Lat: " + String(ponto_goal[0]) +" _ "+" Lng: "+String(ponto_goal[1])); */
-    envia_BT(mensagem_envio1,mensagem_envio2);
-    Serial_Debug.println("Envio_BT");
+    mensagem_comando = mensagem;
+    escreve_Serial(true, false, mensagem_comando);
+    //Serial_Debug.println("Envio_BT");
     zero2 = agora;
+    mensagem = "";
   }
 }
 
@@ -190,7 +173,6 @@ double to_ang(double angulo_rad)
 /// @param debug Comunicação Serial com o PC
 /// @param debug_BT Comunicação Serial para o Bluetooth
 /// @param mensagem  Mensagem a ser enviada
-String mensagem_comando = "";
 void escreve_Serial(bool debug, bool debug_BT, String mensagem)
 {
   if (sizeof(mensagem) >= 3 && mensagem.endsWith(";"))
