@@ -4,7 +4,7 @@
 
 #define Serial_Debug Serial
 #define GPS_Serial Serial1
-#define SerialBT Serial2
+#define SerialBT Serial3
 
 //////////////////////////////// OBJECTS ////////////////////////////
 // The TinyGPS++ object
@@ -26,7 +26,8 @@ void gira_para_direita(int tempo);
 void ajusta_para(bool direita, float tempo);
 void stop();
 void ajusta_angulo(double angulo0, double angulo1);
-
+void escreve_Serial(bool debug, bool debug_BT, String mensagem);
+void envia_BT(String mensagem);
 //////////////Variáveis Declaradas////////////////////////
 
 // Variáveis do tipo uint32_t
@@ -49,7 +50,8 @@ double vec_goal[] = {0, 0};
 bool orientado = false;
 bool primeiro = true;
 bool hasInitialPoint = false;
-bool cond = true; // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
+bool cond = true;       // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
+bool Connected = false; // Variável para conexão bluetooth
 
 // Variáveis do tipo unsigned long
 unsigned long agora = 0;
@@ -60,75 +62,53 @@ void setup()
   // Configurações iniciais...
   Serial_Debug.begin(9600); // Inicia Serial com computador
   GPS_Serial.begin(9600);   // Inicia Serial com GPS
-  SerialBT.begin(9600);
+  SerialBT.begin(9600);     // Inicia Serial com módulo Bluetooth
 
   Serial_Debug.println("Finish Setup");
 }
 
+String mensagem = ";", mensagem_envio = "";
+bool mensagem_completa = false;
+unsigned long zero2 = 0;
 void loop()
 {
-  
-}
+  /*   if (SerialBT.available())
+    {
+      Connected = true;
+    } */
+  /*   if (Connected)
+    { */
+  agora = millis();
+  while (SerialBT.available())
+  {
+    mensagem += SerialBT.readStringUntil('/');
+    delay(5); // Introduce a short delay inside the loop
+  }
 
-void ajusta_angulo(double angulo0, double angulo1)
-{
-  double dif = to_ang(angulo1) - to_ang(angulo0);
-  if (abs(dif) >= 40)
+  /*     if ((agora - zero >= 1000))
+      {
+        escreve_Serial(true, true, mensagem);
+        mensagem = ""; // Clear the message after handling
+        zero = agora;
+      } */
+  if (agora - zero2 >= 2000)
   {
-    if (dif < 0)
+    if (mensagem_completa)
     {
-      ajusta_para(true, 2.5); // Para direita por 2,5 segundos
+      mensagem_envio = "AAA";
+      mensagem_completa = !mensagem_completa;
     }
     else
     {
-      ajusta_para(false, 2.5); // Ajusta para esquerda por 2,5 segundos
+      mensagem_envio = "BBB";
+      mensagem_completa = !mensagem_completa;
     }
-  }
-  else if (abs(dif) < 40 && abs(dif) >= 30)
-  {
-    if (dif < 0)
-    {
-      ajusta_para(true, 1.5);
-    }
-    else
-    {
-      ajusta_para(false, 1.5);
-    }
-  }
-  else if (abs(dif) < 30 && abs(dif) >= 20)
-  {
-    if (dif < 0)
-    {
-      ajusta_para(true, 1);
-    }
-    else
-    {
-      ajusta_para(false, 1);
-    }
-  }
-  else if (abs(dif) < 20 && abs(dif) >= 10)
-  {
-    if (dif < 0)
-    {
-      ajusta_para(true, 0.5); // Para direita por 2,5 segundos
-    }
-    else
-    {
-      ajusta_para(false, 0.5); // Ajusta para esquerda por 2,5 segundos
-    }
-  }
-  else if (abs(dif) < 10)
-  {
-    if (dif < 0)
-    {
-      ajusta_para(true, 0.2); // Para direita por 2,5 segundos
-    }
-    else
-    {
-      ajusta_para(false, 0.2); // Ajusta para esquerda por 2,5 segundos
-    }
+    envia_BT(mensagem_envio);
+    Serial_Debug.println("Envio_BT");
+    zero2 = agora;
   }
 }
+/* } */
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
 /*Função para pegar dois pontos*/
@@ -195,7 +175,95 @@ double to_ang(double angulo_rad)
   return angulo_rad * 90 / PI;
 }
 
+//////////////FUNÇÕES BLUETOOTH////////////////////////
+
+/// @brief Escreve algo na comunicação Serial
+/// @param debug Comunicação Serial com o PC
+/// @param debug_BT Comunicação Serial para o Bluetooth
+/// @param mensagem  Mensagem a ser enviada
+String mensagem_comando = "";
+void escreve_Serial(bool debug, bool debug_BT, String mensagem)
+{
+  if (sizeof(mensagem) >= 3 && mensagem.endsWith(";"))
+  {
+    mensagem_comando = mensagem;
+  }
+  if (debug)
+  {
+    Serial_Debug.println(mensagem_comando);
+  }
+  if (debug_BT)
+  {
+    SerialBT.write(mensagem_comando.c_str());
+    SerialBT.write("\n");
+  }
+}
+
+void envia_BT(String mensagem)
+{
+  SerialBT.println(mensagem);
+}
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
+void ajusta_angulo(double angulo0, double angulo1)
+{
+  double dif = to_ang(angulo1) - to_ang(angulo0);
+  if (abs(dif) >= 40)
+  {
+    if (dif < 0)
+    {
+      ajusta_para(true, 2.5); // Para direita por 2,5 segundos
+    }
+    else
+    {
+      ajusta_para(false, 2.5); // Ajusta para esquerda por 2,5 segundos
+    }
+  }
+  else if (abs(dif) < 40 && abs(dif) >= 30)
+  {
+    if (dif < 0)
+    {
+      ajusta_para(true, 1.5);
+    }
+    else
+    {
+      ajusta_para(false, 1.5);
+    }
+  }
+  else if (abs(dif) < 30 && abs(dif) >= 20)
+  {
+    if (dif < 0)
+    {
+      ajusta_para(true, 1);
+    }
+    else
+    {
+      ajusta_para(false, 1);
+    }
+  }
+  else if (abs(dif) < 20 && abs(dif) >= 10)
+  {
+    if (dif < 0)
+    {
+      ajusta_para(true, 0.5); // Para direita por 2,5 segundos
+    }
+    else
+    {
+      ajusta_para(false, 0.5); // Ajusta para esquerda por 2,5 segundos
+    }
+  }
+  else if (abs(dif) < 10)
+  {
+    if (dif < 0)
+    {
+      ajusta_para(true, 0.2); // Para direita por 2,5 segundos
+    }
+    else
+    {
+      ajusta_para(false, 0.2); // Ajusta para esquerda por 2,5 segundos
+    }
+  }
+}
+
 void anda_para_frente(int tempo)
 {
   analogWrite(in1, 0);
@@ -274,4 +342,3 @@ void stop()
   analogWrite(in2, 0);
   analogWrite(in3, 0);
 }
-////////////////////ROTINA DE ORIENTAÇÃO PARA NORTE///////////////////
