@@ -226,6 +226,8 @@ bool filtro_msg(String msg, bool comando)
   }else{
     return false;
   }
+
+
 }
 
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
