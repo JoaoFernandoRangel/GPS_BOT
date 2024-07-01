@@ -68,17 +68,12 @@ String mensagem = ";";
 String mensagem_envio1, mensagem_envio2, mensagem_comando;
 
 // Verificadores
-bool orientado = false;
-bool primeiro = true;
-bool hasInitialPoint = false;
-bool cond = false;      // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
-bool Connected = false; // Variável para conexão bluetooth
-bool comando = false, recebe = false;
+bool cond = false; // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
+bool comando = false;
 
 // Temporizadores
 unsigned long agora = 0;
 unsigned long zero = 0;
-unsigned long zero2 = 0;
 
 void setup()
 {
@@ -86,6 +81,10 @@ void setup()
   Serial_Debug.begin(9600); // Inicia Serial com computador
   GPS_Serial.begin(9600);   // Inicia Serial com GPS
   SerialBT.begin(9600);     // Inicia Serial com módulo Bluetooth
+  pinMode(9, OUTPUT);
+  pinMode(8, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);
 
   Serial_Debug.println("Finish Setup");
 }
@@ -102,34 +101,37 @@ void loop()
   {
     mensagem_comando = mensagem;
     mensagem_comando.replace(";", " ");
+    mensagem_comando.replace("#", " ");
     mensagem_comando.trim();
     Serial_Debug.println("Filtro passado");
     escreve_Serial(true, false, mensagem_comando);
-    if (comando)
-    {
-
-      ponto_goal[0] = mensagem_comando.substring(0, 8).toFloat();
-      ponto_goal[1] = mensagem_comando.substring(10, 18).toFloat();
-      escreve_Serial(true, false, String(ponto_goal[0], 6) + "_" + String(ponto_goal[1], 6));
-      cond = true;
-      comando = false;
-    }
+    mensagem = "";
+    comando = true;
   }
-
-  if (cond)
+  if (comando)
   {
-    if (agora - zero >= 500) // Executa a rotina a cada segundo.
-    {
-      escreve_Serial(true, false, "AAA");
-      pega_pontos();                                                                             // Aqui imprime os valores do GPS na Serial_Debug e SerialBT
-      faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
-      faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
-      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo_atual);                        // retorna o angulo_atual entre os dois vetores
-      ajusta_angulo(angulo_atual, angulo_anterior);
-      // Rotaciona o carrinho de acordo com o angulo adquirido
-      angulo_anterior = angulo_atual;
-      zero = agora;
-    }
+    // escreve_Serial(true, false, "comando");
+    ponto_goal[0] = mensagem_comando.substring(0, 8).toFloat();
+    ponto_goal[1] = mensagem_comando.substring(10, 18).toFloat();
+    // escreve_Serial(true, false, String(ponto_goal[0], 6) + "_" + String(ponto_goal[1], 6));
+    cond = true;
+    comando = false;
+    mensagem_comando = "";
+  }
+  if (cond) // Rotina de movimentação
+  {
+    escreve_Serial(true, false, "Ajustando POS");
+    Serial_Debug.println("");
+    escreve_Serial(true, false, String(calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1])));
+
+    pega_pontos();                                                                             // Aqui imprime os valores do GPS na Serial_Debug e SerialBT
+    faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
+    faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
+    dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo_atual);                        // retorna o angulo_atual entre os dois vetores
+    ajusta_angulo(angulo_atual, angulo_anterior);
+    // Rotaciona o carrinho de acordo com o angulo adquirido
+
+    angulo_anterior = angulo_atual;
   }
   if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2) // verifica se estamos a menos de 2 metros do alvo
   {
@@ -166,6 +168,7 @@ void le_gps(double ponto_x, double ponto_y)
     gps.encode(GPS_Serial.read());
     ponto_x = gps.location.lat();
     ponto_y = gps.location.lng();
+    Serial_Debug.print("Aqui é a leitura do GPS---");
     Serial_Debug.print("Latitude= ");
     Serial_Debug.print(ponto_x, 6);
     Serial_Debug.print(" Longitude= ");
@@ -216,11 +219,11 @@ void escreve_Serial(bool debug, bool debug_BT, String mensagem)
 {
   if (debug)
   {
-    Serial_Debug.println(mensagem_comando);
+    Serial_Debug.println(mensagem);
   }
   if (debug_BT)
   {
-    SerialBT.println(mensagem_comando);
+    SerialBT.println(mensagem);
   }
 }
 
@@ -244,7 +247,7 @@ bool filtro_msg(String msg, bool comando)
     comando = true;
     return true;
   }
-  if (msg.endsWith(";;") && msg.startsWith(";"))
+  if (msg.endsWith(";;") && msg.startsWith("#;"))
   { // verifica inicio e fim da mensagem
     ver1 = true;
   }
