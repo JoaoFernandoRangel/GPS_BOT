@@ -8,6 +8,17 @@
 #define GPS_Serial Serial1
 #define SerialBT Serial3
 
+/*
+Centro do campo
+Latitude= -20.309399 Longitude= -40.319274
+
+Gol longe
+Latitude= -20.309140 Longitude= -40.319346
+
+Gol perto
+Latitude= -20.309714 Longitude= -40.319204
+*/
+
 //////////////////////////////// OBJECTS ////////////////////////////
 // The TinyGPS++ object
 TinyGPSPlus gps;
