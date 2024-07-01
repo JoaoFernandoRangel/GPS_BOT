@@ -91,32 +91,24 @@ void setup()
 
 void loop()
 {
-  agora = millis();
-  if (comando)
+  if (cond)
   {
-    Serial_Debug.println("Comando recebido");
-  }
-  while (SerialBT.available())
-  {
-    mensagem += SerialBT.readStringUntil('/');
-    delay(5); // Introduce a short delay inside the loop
-  }
-
-  if (agora - zero2 >= 1000)
-  {
-    /* envia_BT("Lat: " + String(ponto_goal[0]) +" _ "+" Lng: "+String(ponto_goal[1])); */
-
-    if (filtro_msg(mensagem, comando))
+    agora = millis();
+    if (agora - zero >= 1000) // Executa a rotina a cada segundo.
     {
-      mensagem_comando = mensagem;
-      mensagem_comando.replace(";", " ");
-      mensagem_comando.trim();
-      Serial_Debug.println("Filtro passado");
+      pega_pontos();
+      if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2) // verifica se estamos a menos de 2 metros do alvo
+      {
+        stop();
+        cond = false; // Para o loop uma vez que a distância é atingida.
+      } // Anda em linha reta por 2,5 segundos
+      faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
+      faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
+      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);                             // retorna o angulo0 entre os dois vetores
+      ajusta_angulo(angulo0, angulo1);                                                           // Rotaciona o carrinho de acordo com o angulo adquirido
+      angulo1 = angulo0;
+      zero = agora;
     }
-    escreve_Serial(true, true, mensagem_comando);
-    // Serial_Debug.println("Envio_BT");
-    zero2 = agora;
-    mensagem = "";
   }
 }
 
