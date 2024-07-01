@@ -98,7 +98,7 @@ void loop()
     mensagem += SerialBT.readStringUntil('/');
     delay(5); // Introduce a short delay inside the loop
   }
-  if (filtro_msg(mensagem, comando) && agora - zero2 >= 1000)
+  if (filtro_msg(mensagem, comando))
   {
     mensagem_comando = mensagem;
     mensagem_comando.replace(";", " ");
@@ -114,7 +114,6 @@ void loop()
       cond = true;
       comando = false;
     }
-    zero2 = agora;
   }
 
   if (cond)
