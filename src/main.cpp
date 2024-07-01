@@ -4,9 +4,6 @@
 #include "string.h"
 #include "stdlib.h"
 
-
-
-
 #define Serial_Debug Serial
 #define GPS_Serial Serial1
 #define SerialBT Serial3
@@ -33,9 +30,10 @@ void stop();
 void ajusta_angulo(double angulo0, double angulo1);
 void escreve_Serial(bool debug, bool debug_BT, String mensagem);
 void envia_BT(String mensagem0, String mensagem1);
+bool filtro_msg(String msg, bool comando);
 //////////////Variáveis Declaradas////////////////////////
 
-// Variáveis do tipo uint32_t
+// Portas de controle da ponte H
 uint32_t in1 = 9;
 uint32_t in2 = 8;
 uint32_t in3 = 6;
@@ -43,7 +41,6 @@ uint32_t in4 = 7;
 
 // Variáveis do tipo double
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
-String ponto_goal_lat = "-20.310872556", ponto_goal_lng = "-40.319732665"; // Strings de local
 double rTerra = 6371;                           // Raio da terra em km
 double angulo0 = 0;
 double angulo1 = 0;
@@ -52,16 +49,24 @@ double ponto1[] = {0, 0};
 double vec0[] = {0, 0};
 double vec_goal[] = {0, 0};
 
-// Variáveis do tipo bool
+// Variáveis do tipo String
+String ponto_goal_lat = "-20.310872556";
+String ponto_goal_lng = "-40.319732665"; // Strings de local
+String mensagem = ";";
+String mensagem_envio1, mensagem_envio2, mensagem_comando;
+
+// Verificadores
 bool orientado = false;
 bool primeiro = true;
 bool hasInitialPoint = false;
 bool cond = true;       // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
 bool Connected = false; // Variável para conexão bluetooth
+bool comando = false;
 
-// Variáveis do tipo unsigned long
+// Temporizadores
 unsigned long agora = 0;
 unsigned long zero = 0;
+unsigned long zero2 = 0;
 
 void setup()
 {
@@ -69,43 +74,40 @@ void setup()
   Serial_Debug.begin(9600); // Inicia Serial com computador
   GPS_Serial.begin(9600);   // Inicia Serial com GPS
   SerialBT.begin(9600);     // Inicia Serial com módulo Bluetooth
-  
+
   Serial_Debug.println("Finish Setup");
 }
 
-String mensagem = ";",  mensagem_envio1 , mensagem_envio2, mensagem_comando;
-bool mensagem_completa = false;
-unsigned long zero2 = 0;
 void loop()
 {
-  /*   if (SerialBT.available())
-    {
-      Connected = true;
-    } */
-  /*   if (Connected)
-    { */
   agora = millis();
+  if (comando)
+  {
+    Serial_Debug.println("Comando recebido");
+  }
   while (SerialBT.available())
   {
     mensagem += SerialBT.readStringUntil('/');
     delay(5); // Introduce a short delay inside the loop
   }
+
   if (agora - zero2 >= 1000)
   {
     /* envia_BT("Lat: " + String(ponto_goal[0]) +" _ "+" Lng: "+String(ponto_goal[1])); */
-    /*
-    if (mensagem passa pelo filtro){
-    mensagem_comando= mensagem
+
+    if (filtro_msg(mensagem, comando))
+    {
+      mensagem_comando = mensagem;
+      mensagem_comando.replace(";", " ");
+      mensagem_comando.trim();
+      Serial_Debug.println("Filtro passado");
     }
-    */
-    mensagem_comando = mensagem;
-    escreve_Serial(true, false, mensagem_comando);
-    //Serial_Debug.println("Envio_BT");
+    escreve_Serial(true, true, mensagem_comando);
+    // Serial_Debug.println("Envio_BT");
     zero2 = agora;
     mensagem = "";
   }
 }
-
 
 //////////////FUNÇÕES E DESCRIÇÕES////////////////////////
 /*Função para pegar dois pontos*/
@@ -135,9 +137,9 @@ void le_gps(bool escreve_na_port, double ponto_x, double ponto_y)
     ponto_x = gps.location.lat();
     ponto_y = gps.location.lng();
     Serial_Debug.print("Latitude= ");
-    Serial_Debug.print(gps.location.lat(), 8);
+    Serial_Debug.print(gps.location.lat(), 6);
     Serial_Debug.print(" Longitude= ");
-    Serial_Debug.println(gps.location.lng(), 8);
+    Serial_Debug.println(gps.location.lng(), 6);
   }
   else
   {
@@ -180,18 +182,13 @@ double to_ang(double angulo_rad)
 /// @param mensagem  Mensagem a ser enviada
 void escreve_Serial(bool debug, bool debug_BT, String mensagem)
 {
-  if (sizeof(mensagem) >= 3 && mensagem.endsWith(";"))
-  {
-    mensagem_comando = mensagem;
-  }
   if (debug)
   {
     Serial_Debug.println(mensagem_comando);
   }
   if (debug_BT)
   {
-    SerialBT.write(mensagem_comando.c_str());
-    SerialBT.write("\n");
+    SerialBT.println(mensagem_comando);
   }
 }
 
@@ -200,12 +197,37 @@ void envia_BT(String mensagem0, String mensagem1)
   SerialBT.print(mensagem0);
   SerialBT.print("_");
   SerialBT.println(mensagem1);
-  
+
   Serial_Debug.print(mensagem0);
   Serial_Debug.print("_");
   Serial_Debug.println(mensagem1);
-
 }
+
+bool filtro_msg(String msg, bool comando)
+{
+  bool ver1 = false; // valida os marcadores
+  bool ver2 = false; // valida o tamanho da mensagem
+  if (msg.indexOf("#") != -1)
+  {
+    comando = true;
+    return true;
+  }
+  if (msg.endsWith(";;") && msg.startsWith(";"))
+  { // verifica inicio e fim da mensagem
+    ver1 = true;
+  }
+  if (msg.length() >= 23)
+  { // Duas coordenadas + sinais de menos + marcadores de inicio e fim + separador
+    ver2 = true;
+  }
+  if (ver1 && ver2)
+  {
+    return true;
+  }else{
+    return false;
+  }
+}
+
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
 void ajusta_angulo(double angulo0, double angulo1)
 {
