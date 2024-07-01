@@ -17,18 +17,18 @@ Latitude= -20.309140 Longitude= -40.319346
 
 Gol perto
 Latitude= -20.309714 Longitude= -40.319204
-*/
 
+*/
 //////////////////////////////// OBJECTS ////////////////////////////
-// The TinyGPS++ object
+// The TinyGPS++ object//nvam
 TinyGPSPlus gps;
 
 //////////////DECLARAÇÕES DE FUNÇÕES////////////////////////
 void pega_pontos();
 double calc_dist(double lat, double longt, double lat_goal, double long_goal);
-void le_gps(bool escreve_na_port, double ponto_x, double ponto_y);
+void le_gps(double ponto_x, double ponto_y);
 void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_vec, double y_vec);
-double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo);
+void dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo);
 double modulo(double x, double y);
 double to_rad(double angulo_grau);
 double to_ang(double angulo_rad);
@@ -38,10 +38,11 @@ void gira_para_esquerda(int tempo);
 void gira_para_direita(int tempo);
 void ajusta_para(bool direita, float tempo);
 void stop();
-void ajusta_angulo(double angulo0, double angulo1);
+void ajusta_angulo(double angulo_atual, double angulo_anterior);
 void escreve_Serial(bool debug, bool debug_BT, String mensagem);
 void envia_BT(String mensagem0, String mensagem1);
 bool filtro_msg(String msg, bool comando);
+
 //////////////Variáveis Declaradas////////////////////////
 
 // Portas de controle da ponte H
@@ -53,16 +54,16 @@ uint32_t in4 = 7;
 // Variáveis do tipo double
 double ponto_goal[] = {-20.310872, -40.319732}; // Dentro da quadra
 double rTerra = 6371;                           // Raio da terra em km
-double angulo0 = 0;
-double angulo1 = 0;
+double angulo_atual = 0;
+double angulo_anterior = 0;
 double ponto0[] = {0, 0};
 double ponto1[] = {0, 0};
 double vec0[] = {0, 0};
 double vec_goal[] = {0, 0};
 
 // Variáveis do tipo String
-String ponto_goal_lat = "-20.310872556";
-String ponto_goal_lng = "-40.319732665"; // Strings de local
+String ponto_goal_lat = "0";
+String ponto_goal_lng = "0"; // Strings de local
 String mensagem = ";";
 String mensagem_envio1, mensagem_envio2, mensagem_comando;
 
@@ -70,9 +71,9 @@ String mensagem_envio1, mensagem_envio2, mensagem_comando;
 bool orientado = false;
 bool primeiro = true;
 bool hasInitialPoint = false;
-bool cond = true;       // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
+bool cond = false;      // Variável vai ser usada para iniciar a operação de busca uma vez que o ponto objetivo for enviado pelo Bluetooth
 bool Connected = false; // Variável para conexão bluetooth
-bool comando = false;
+bool comando = false, recebe = false;
 
 // Temporizadores
 unsigned long agora = 0;
@@ -91,24 +92,51 @@ void setup()
 
 void loop()
 {
+  agora = millis();
+  while (SerialBT.available())
+  {
+    mensagem += SerialBT.readStringUntil('/');
+    delay(5); // Introduce a short delay inside the loop
+  }
+  if (filtro_msg(mensagem, comando) && agora - zero2 >= 1000)
+  {
+    mensagem_comando = mensagem;
+    mensagem_comando.replace(";", " ");
+    mensagem_comando.trim();
+    Serial_Debug.println("Filtro passado");
+    escreve_Serial(true, false, mensagem_comando);
+    if (comando)
+    {
+
+      ponto_goal[0] = mensagem_comando.substring(0, 8).toFloat();
+      ponto_goal[1] = mensagem_comando.substring(10, 18).toFloat();
+      escreve_Serial(true, false, String(ponto_goal[0], 6) + "_" + String(ponto_goal[1], 6));
+      cond = true;
+      comando = false;
+    }
+    zero2 = agora;
+  }
+
   if (cond)
   {
-    agora = millis();
-    if (agora - zero >= 1000) // Executa a rotina a cada segundo.
+    if (agora - zero >= 500) // Executa a rotina a cada segundo.
     {
-      pega_pontos();
-      if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2) // verifica se estamos a menos de 2 metros do alvo
-      {
-        stop();
-        cond = false; // Para o loop uma vez que a distância é atingida.
-      } // Anda em linha reta por 2,5 segundos
+      escreve_Serial(true, false, "AAA");
+      pega_pontos();                                                                             // Aqui imprime os valores do GPS na Serial_Debug e SerialBT
       faz_vetores(ponto0[0], ponto0[1], ponto1[0], ponto1[1], vec0[0], vec0[1]);                 // vetor de movimento
       faz_vetores(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1], vec_goal[0], vec_goal[1]); // vetor entre o ponto atual e o objetivo
-      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo0);                             // retorna o angulo0 entre os dois vetores
-      ajusta_angulo(angulo0, angulo1);                                                           // Rotaciona o carrinho de acordo com o angulo adquirido
-      angulo1 = angulo0;
+      dot_prod(vec0[0], vec0[1], vec_goal[0], vec_goal[1], angulo_atual);                        // retorna o angulo_atual entre os dois vetores
+      ajusta_angulo(angulo_atual, angulo_anterior);
+      // Rotaciona o carrinho de acordo com o angulo adquirido
+      angulo_anterior = angulo_atual;
       zero = agora;
     }
+  }
+  if (calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1]) <= 2) // verifica se estamos a menos de 2 metros do alvo
+  {
+    stop();
+    escreve_Serial(true, false, String(calc_dist(ponto1[0], ponto1[1], ponto_goal[0], ponto_goal[1])));
+    cond = false; // Para o loop uma vez que a distância é atingida.
   }
 }
 
@@ -116,10 +144,10 @@ void loop()
 /*Função para pegar dois pontos*/
 void pega_pontos()
 {
-  le_gps(true, ponto0[0], ponto0[1]);
+  le_gps(ponto0[0], ponto0[1]);
   anda_para_frente(3000);
   delay(200);
-  le_gps(true, ponto1[0], ponto1[1]);
+  le_gps(ponto1[0], ponto1[1]);
 }
 /*Calcula a distância entre o ponto atual e a o ponto desejado. Resultado em metros*/
 double calc_dist(double lat, double longt, double lat_goal, double long_goal)
@@ -132,7 +160,7 @@ double calc_dist(double lat, double longt, double lat_goal, double long_goal)
   return Distancia * 1000; // Valor sai em m.
 }
 /*Função de leitura do módulo GPS. Quando o valor é positivo o valor é impresso na comunicação Serial no pc.*/
-void le_gps(bool escreve_na_port, double ponto_x, double ponto_y)
+void le_gps(double ponto_x, double ponto_y)
 {
   if (GPS_Serial.available() > 0)
   {
@@ -140,13 +168,17 @@ void le_gps(bool escreve_na_port, double ponto_x, double ponto_y)
     ponto_x = gps.location.lat();
     ponto_y = gps.location.lng();
     Serial_Debug.print("Latitude= ");
-    Serial_Debug.print(gps.location.lat(), 6);
+    Serial_Debug.print(ponto_x, 6);
     Serial_Debug.print(" Longitude= ");
-    Serial_Debug.println(gps.location.lng(), 6);
+    Serial_Debug.println(ponto_y, 6);
+    SerialBT.print(ponto_x, 6);
+    SerialBT.print("_");
+    SerialBT.println(ponto_y, 6);
   }
   else
   {
     Serial_Debug.println("Falha na leitura do GPS!!");
+    SerialBT.println("Falha na leitura do GPS!!");
   }
 }
 /*Calcula um vetor entre dois pontos e retorna o valor para as ultimas variáveis passadas para a função*/
@@ -155,8 +187,8 @@ void faz_vetores(double x_zero, double y_zero, double x_1, double y_1, double x_
   x_vec = x_1 - x_zero;
   y_vec = y_1 - y_zero;
 }
-/*Retorna angulo entre dois vetores em radianos*/
-double dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo)
+/*Faz produto escalar e entrega o angulo entre dois vetores na ultma variável passada*/
+void dot_prod(double x_vetor_0, double y_vetor_0, double x_vetor_1, double y_vetor_1, double angulo)
 {
   angulo = asin((x_vetor_0 * x_vetor_1 + y_vetor_0 * y_vetor_1) / (modulo(x_vetor_0, y_vetor_0) * modulo(x_vetor_1, y_vetor_1)));
 }
@@ -166,7 +198,6 @@ double modulo(double x, double y)
   double modulo = sqrt(pow(x, 2) + pow(y, 2));
   return modulo;
 }
-/*Conversor de grau para Radiano*/
 double to_rad(double angulo_grau)
 {
   return (angulo_grau * PI / 180);
@@ -178,7 +209,6 @@ double to_ang(double angulo_rad)
 }
 
 //////////////FUNÇÕES BLUETOOTH////////////////////////
-
 /// @brief Escreve algo na comunicação Serial
 /// @param debug Comunicação Serial com o PC
 /// @param debug_BT Comunicação Serial para o Bluetooth
@@ -219,31 +249,33 @@ bool filtro_msg(String msg, bool comando)
   { // verifica inicio e fim da mensagem
     ver1 = true;
   }
-  if (msg.length() >= 23)
-  { // Duas coordenadas + sinais de menos + marcadores de inicio e fim + separador
+  if (msg.length() >= 23) // cada coordenada tem 9 caracteres; 2 inicializadores(1x;), um finalizador(2x;) e um separador(_)
+  {                       // Duas coordenadas + sinais de menos + marcadores de inicio e fim + separador
     ver2 = true;
   }
   if (ver1 && ver2)
   {
     return true;
-  }else{
+  }
+  else
+  {
     return false;
   }
 }
 
 //////////////FUNÇÕES DE MOVIMENTAÇÃO////////////////////////
-void ajusta_angulo(double angulo0, double angulo1)
+void ajusta_angulo(double angulo_atual, double angulo_anterior)
 {
-  double dif = to_ang(angulo1) - to_ang(angulo0);
+  double dif = to_ang(angulo_atual) - to_ang(angulo_anterior);
   if (abs(dif) >= 40)
   {
     if (dif < 0)
     {
-      ajusta_para(true, 2.5); // Para direita por 2,5 segundos
+      ajusta_para(true, 2.5); // Para esquerda por 2,5 segundos
     }
     else
     {
-      ajusta_para(false, 2.5); // Ajusta para esquerda por 2,5 segundos
+      ajusta_para(false, 2.5); // Ajusta para direita por 2,5 segundos
     }
   }
   else if (abs(dif) < 40 && abs(dif) >= 30)
